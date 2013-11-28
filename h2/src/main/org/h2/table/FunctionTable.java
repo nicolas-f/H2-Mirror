@@ -71,7 +71,8 @@ public class FunctionTable extends Table {
             Column[] cols = new Column[columnCount];
             for (int i = 0; i < columnCount; i++) {
                 cols[i] = new Column(meta.getColumnName(i + 1), DataType.convertSQLTypeToValueType(meta
-                        .getColumnType(i + 1)), meta.getPrecision(i + 1), meta.getScale(i + 1), meta.getColumnDisplaySize(i + 1));
+                        .getColumnType(i + 1), meta.getColumnTypeName(i + 1)), meta.getPrecision(i + 1),
+                        meta.getScale(i + 1), meta.getColumnDisplaySize(i + 1));
             }
             setColumns(cols);
         } catch (SQLException e) {

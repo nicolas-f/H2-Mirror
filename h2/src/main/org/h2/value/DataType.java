@@ -736,6 +736,27 @@ public class DataType {
     }
 
     /**
+     * Convert a SQL type to a value type using Sql Type name in order to manage SQL type extension mechanism.
+     *
+     * @param sqlType the SQL type
+     * @param sqlTypeName the SQL type name
+     * @return the value type
+     */
+    public static int convertSQLTypeToValueType(int sqlType, String sqlTypeName) {
+        switch(sqlType) {
+            case Types.OTHER:
+            case Types.JAVA_OBJECT:
+                if(sqlTypeName.equalsIgnoreCase("geometry")) {
+                    return Value.GEOMETRY;
+                } else {
+                    return convertSQLTypeToValueType(sqlType);
+                }
+            default:
+                return convertSQLTypeToValueType(sqlType);
+        }
+    }
+
+    /**
      * Convert a SQL type to a value type.
      *
      * @param sqlType the SQL type
