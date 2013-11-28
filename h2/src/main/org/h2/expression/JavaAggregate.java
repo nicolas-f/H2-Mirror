@@ -9,7 +9,10 @@ package org.h2.expression;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
+
+import org.h2.api.AggregateAlias;
 import org.h2.api.AggregateFunction;
+import org.h2.api.AggregateTypeFunction;
 import org.h2.command.Parser;
 import org.h2.command.dml.Select;
 import org.h2.constant.ErrorCode;
@@ -117,16 +120,28 @@ public class JavaAggregate extends Expression {
         int len = args.length;
         argTypes = new int[len];
         int[] argSqlTypes = new int[len];
+        String[] argSqlTypeName = new String[len];
         for (int i = 0; i < len; i++) {
             Expression expr = args[i];
             args[i] = expr.optimize(session);
             int type = expr.getType();
             argTypes[i] = type;
             argSqlTypes[i] = DataType.convertTypeToSQLType(type);
+            argSqlTypeName[i] = DataType.getDataType(type).jdbc;
         }
         try {
-            AggregateFunction aggregate = getInstance();
-            dataType = DataType.convertSQLTypeToValueType(aggregate.getType(argSqlTypes));
+            AggregateAlias aggregate = getInstance();
+            if(aggregate instanceof AggregateFunction) {
+                // Only standard SQL type
+                dataType = DataType.convertSQLTypeToValueType(((AggregateFunction) aggregate).getType(argSqlTypes));
+            } else if(aggregate instanceof AggregateTypeFunction) {
+                // Manage SQL type extension
+                AggregateTypeFunction typeFunction = (AggregateTypeFunction)aggregate;
+                AggregateTypeFunction.ColumnType columnType = typeFunction.getType(argSqlTypes, argSqlTypeName);
+                dataType = DataType.convertSQLTypeToValueType(columnType.type, columnType.typeName);
+            } else {
+                throw DbException.get(ErrorCode.UNKNOWN_AGGREGATE_IMPLEMENTATION);
+            }
         } catch (SQLException e) {
             throw DbException.convert(e);
         }
@@ -140,8 +155,8 @@ public class JavaAggregate extends Expression {
         }
     }
 
-    private AggregateFunction getInstance() throws SQLException {
-        AggregateFunction agg = userAggregate.getInstance();
+    private AggregateAlias getInstance() throws SQLException {
+        AggregateAlias agg = userAggregate.getInstance();
         agg.init(userConnection);
         return agg;
     }
@@ -153,7 +168,7 @@ public class JavaAggregate extends Expression {
             throw DbException.get(ErrorCode.INVALID_USE_OF_AGGREGATE_FUNCTION_1, getSQL());
         }
         try {
-            AggregateFunction agg = (AggregateFunction) group.get(this);
+            AggregateAlias agg = (AggregateAlias) group.get(this);
             if (agg == null) {
                 agg = getInstance();
             }
@@ -182,7 +197,7 @@ public class JavaAggregate extends Expression {
         }
         lastGroupRowId = groupRowId;
 
-        AggregateFunction agg = (AggregateFunction) group.get(this);
+        AggregateAlias agg = (AggregateAlias) group.get(this);
         try {
             if (agg == null) {
                 agg = getInstance();
