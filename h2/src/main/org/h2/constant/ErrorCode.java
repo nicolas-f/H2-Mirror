@@ -1883,6 +1883,12 @@ public class ErrorCode {
      */
     public static final int JAVA_OBJECT_SERIALIZER_CHANGE_WITH_DATA_TABLE = 90141;
 
+    /**
+     * The error with code <code>90140</code> is thrown when neither the AggregateFunction nor the AggregateTypeFunction
+     * is used as user-defined aggregate.
+     */
+    public static final int UNKNOWN_AGGREGATE_IMPLEMENTATION = 90142;
+
 
     // next are 90010, 90011, 90021, 90039,
     // 90051, 90056, 90110, 90122, 90142

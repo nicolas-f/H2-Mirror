@@ -2038,7 +2038,8 @@ public class SimpleResultSet implements ResultSet, ResultSetMetaData {
     @Override
     public String getColumnClassName(int columnIndex) throws SQLException {
         int sqlType = getColumn(columnIndex - 1).sqlType;
-        int type = DataType.convertSQLTypeToValueType(sqlType);
+        String sqlTypeName = getColumn(columnIndex - 1).sqlTypeName;
+        int type = DataType.convertSQLTypeToValueType(sqlType, sqlTypeName);
         return DataType.getTypeClassName(type);
     }
 
