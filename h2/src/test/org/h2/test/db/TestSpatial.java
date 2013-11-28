@@ -63,6 +63,7 @@ public class TestSpatial extends TestBase {
             testWKB();
             testValueConversion();
             testEquals();
+            testTableFunctionGeometry();
             deleteDb("spatial");
         }
     }
@@ -487,7 +488,7 @@ public class TestSpatial extends TestBase {
                 random.setSeed(seed);
             }
         });
-        rs.addColumn("the_geom", Types.OTHER, Integer.MAX_VALUE, 0);
+        rs.addColumn("the_geom", Types.OTHER, "GEOMETRY", Integer.MAX_VALUE, 0);
         return rs;
     }
 
@@ -580,6 +581,36 @@ public class TestSpatial extends TestBase {
         } catch (IllegalArgumentException ex) {
             // expected
         }
+    }
+
+    /**
+     * Check that geometry column type is kept with a table function
+     */
+    private void testTableFunctionGeometry() throws SQLException {
+        deleteDb("spatialIndex");
+        Connection conn = getConnection("spatialIndex");
+        try {
+            Statement stat = conn.createStatement();
+            stat.execute("CREATE ALIAS POINT_TABLE FOR \"" +
+                    TestSpatial.class.getName() + ".pointTable\"");
+            stat.execute("create table test as select * from point_table(1, 1)");
+            // Read column type
+            ResultSet columnMeta = conn.getMetaData().getColumns(null, null, "TEST", "THE_GEOM");
+            assertTrue(columnMeta.next());
+            assertEquals("geometry", columnMeta.getString("TYPE_NAME").toLowerCase());
+            assertFalse(columnMeta.next());
+        } finally {
+            conn.close();
+        }
+        deleteDb("spatialIndex");
+    }
+
+    public static ResultSet pointTable(double x, double y) {
+        GeometryFactory factory = new GeometryFactory();
+        SimpleResultSet srs = new SimpleResultSet();
+        srs.addColumn("THE_GEOM", Types.JAVA_OBJECT, "GEOMETRY", 0, 0);
+        srs.addRow(factory.createPoint(new Coordinate(x, y)));
+        return srs;
     }
 
 }
