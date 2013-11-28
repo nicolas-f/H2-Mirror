@@ -643,9 +643,12 @@ public class TestSpatial extends TestBase {
 
         @Override
         public ColumnType getType(int[] inputTypes, String[] inputTypesName) throws SQLException {
+            if(inputTypes.length != 1) {
+                throw new SQLException("Table_Envelope take only one parameter");
+            }
             for(String typeName : inputTypesName) {
                 if(!(typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase(Geometry.class.getName()))) {
-                    throw new SQLException("TableEnvelope accept only Geometry argument");
+                    throw new SQLException("Table_Envelope accept only Geometry argument");
                 }
             }
             return new ColumnType(Types.JAVA_OBJECT, Geometry.class.getName());
