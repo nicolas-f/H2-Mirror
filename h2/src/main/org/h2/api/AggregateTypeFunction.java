@@ -11,9 +11,8 @@ import java.sql.SQLException;
 /**
  * A user-defined aggregate function needs to implement this interface.
  * The class must be public and must have a public non-argument constructor.
- * This interface use standard SQL Data Types.
  */
-public interface AggregateFunction extends AggregateAlias {
+public interface AggregateTypeFunction extends AggregateAlias {
 
     /**
      * This method must return the SQL type of the method, given the SQL type of
@@ -21,8 +20,26 @@ public interface AggregateFunction extends AggregateAlias {
      * passed is correct, and if not it should throw an exception.
      *
      * @param inputTypes the SQL type of the parameters, {@link java.sql.Types}
+     * @param inputTypesName the SQL type name of the parameters  {@link java.sql.ResultSetMetaData#getColumnTypeName(int)}
      * @return the SQL type of the result
      */
-    int getType(int[] inputTypes) throws SQLException;
+    ColumnType getType(int[] inputTypes, String[] inputTypesName) throws SQLException;
 
+    /**
+     * Expected aggregate return type
+     */
+    public class ColumnType {
+        public final int type;
+        public final String typeName;
+
+        /**
+         * Constructor.
+         * @param type the SQL type {@link java.sql.Types}
+         * @param typeName the SQL type name. {@link java.sql.ResultSetMetaData#getColumnTypeName(int)}
+         */
+        public ColumnType(int type, String typeName) {
+            this.type = type;
+            this.typeName = typeName;
+        }
+    }
 }

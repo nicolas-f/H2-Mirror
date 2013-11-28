@@ -6,7 +6,7 @@
  */
 package org.h2.engine;
 
-import org.h2.api.AggregateFunction;
+import org.h2.api.AggregateAlias;
 import org.h2.command.Parser;
 import org.h2.message.DbException;
 import org.h2.message.Trace;
@@ -29,14 +29,14 @@ public class UserAggregate extends DbObjectBase {
         }
     }
 
-    public AggregateFunction getInstance() {
+    public AggregateAlias getInstance() {
         if (javaClass == null) {
             javaClass = Utils.loadUserClass(className);
         }
         Object obj;
         try {
             obj = javaClass.newInstance();
-            AggregateFunction agg = (AggregateFunction) obj;
+            AggregateAlias agg = (AggregateAlias) obj;
             return agg;
         } catch (Exception e) {
             throw DbException.convert(e);
