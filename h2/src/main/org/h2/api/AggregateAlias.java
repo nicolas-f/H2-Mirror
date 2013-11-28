@@ -10,8 +10,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
- * A user-defined aggregate function needs to implement this interface.
- * The class must be public and must have a public non-argument constructor.
+ * Super interface for user-defined aggregate function.
+ * Do not implement this interface directly, use {@link AggregateFunction} or {@link AggregateTypeFunction}
  */
 public interface AggregateAlias {
     /**
