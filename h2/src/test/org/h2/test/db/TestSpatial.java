@@ -12,6 +12,9 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Random;
+
+import com.vividsolutions.jts.geom.Envelope;
+import org.h2.api.AggregateTypeFunction;
 import org.h2.test.TestBase;
 import org.h2.tools.SimpleResultSet;
 import org.h2.tools.SimpleRowSource;
@@ -646,4 +649,59 @@ public class TestSpatial extends TestBase {
         return rs;
     }
 
+    public void testAggregateWithGeometry() throws SQLException {
+        deleteDb("spatialIndex");
+        Connection conn = getConnection("spatialIndex");
+        try {
+            Statement st = conn.createStatement();
+            st.execute("CREATE AGGREGATE TABLE_ENVELOPE FOR \""+TableEnvelope.class.getName()+"\"");
+            st.execute("CREATE TABLE test(the_geom GEOMETRY)");
+            st.execute("INSERT INTO test VALUES ('POINT(1 1)'), ('POINT(10 5)')");
+            ResultSet rs = st.executeQuery("select TABLE_ENVELOPE(the_geom) from test");
+            assertEquals("geometry",rs.getMetaData().getColumnTypeName(1).toLowerCase());
+            assertTrue(rs.next());
+            assertTrue(rs.getObject(1) instanceof Geometry);
+            assertTrue(new Envelope(1, 10, 1, 5).equals(((Geometry)rs.getObject(1)).getEnvelopeInternal()));
+            assertFalse(rs.next());
+        } finally {
+            conn.close();
+        }
+        deleteDb("spatialIndex");
+    }
+
+
+    public static class TableEnvelope implements AggregateTypeFunction {
+        private Envelope tableEnvelope;
+
+        @Override
+        public ColumnType getType(int[] inputTypes, String[] inputTypesName) throws SQLException {
+            for(String typeName : inputTypesName) {
+                if(!(typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase(Geometry.class.getName()))) {
+                    throw new SQLException("TableEnvelope accept only Geometry argument");
+                }
+            }
+            return new ColumnType(Types.JAVA_OBJECT, Geometry.class.getName());
+        }
+
+        @Override
+        public void init(Connection conn) throws SQLException {
+            tableEnvelope = null;
+        }
+
+        @Override
+        public void add(Object value) throws SQLException {
+            if(value instanceof Geometry) {
+                if(tableEnvelope == null) {
+                    tableEnvelope = ((Geometry) value).getEnvelopeInternal();
+                } else {
+                    tableEnvelope.expandToInclude(((Geometry) value).getEnvelopeInternal());
+                }
+            }
+        }
+
+        @Override
+        public Object getResult() throws SQLException {
+            return new GeometryFactory().toGeometry(tableEnvelope);
+        }
+    }
 }
