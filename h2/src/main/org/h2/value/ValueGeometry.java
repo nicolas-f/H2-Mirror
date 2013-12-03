@@ -33,9 +33,10 @@ import com.vividsolutions.jts.io.WKTWriter;
 public class ValueGeometry extends Value {
 
     /**
-     * The value.
+     * The value. Converted from WKB only on request as conversion from/to WKB cost a significant amount of cpu cycles.
      */
     private Geometry geometry;
+    /** As conversion from/to WKB cost a significant amount of cpu cycles, WKB are kept in ValueGeometry instance */
     private byte[] bytes;
 
     private ValueGeometry(Geometry geometry) {
@@ -90,7 +91,6 @@ public class ValueGeometry extends Value {
     public Geometry getGeometry() {
         if(geometry == null && bytes != null) {
             geometry = fromWKB(bytes);
-            bytes = null;
         }
         return geometry;
     }
@@ -163,12 +163,12 @@ public class ValueGeometry extends Value {
 
     @Override
     public long getPrecision() {
-        return toWKT().length();
+        return 0;
     }
 
     @Override
     public int hashCode() {
-        return getGeometry().hashCode();
+        return toWKB().hashCode();
     }
 
     @Override
