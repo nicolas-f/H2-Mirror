@@ -2329,7 +2329,7 @@ public class Function extends Expression implements FunctionCall {
     }
 
     @Override
-    public boolean isFast() {
+    public boolean isResultCacheNeeded() {
         return info.fast;
     }
 

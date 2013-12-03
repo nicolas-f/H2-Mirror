@@ -75,10 +75,10 @@ public interface FunctionCall {
     boolean isDeterministic();
 
     /**
-     * Whether the function is fast, meaning the result shouldn't be cached.
+     * Is this result should be cached.
      *
      * @return true if it is
      */
-    boolean isFast();
+    boolean isResultCacheNeeded();
 
 }

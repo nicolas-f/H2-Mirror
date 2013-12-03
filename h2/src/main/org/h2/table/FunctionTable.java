@@ -213,8 +213,8 @@ public class FunctionTable extends Table {
         return (ValueResultSet) v;
     }
 
-    public boolean isFast() {
-        return function.isFast();
+    public boolean isResultCacheNeeded() {
+        return function.isResultCacheNeeded();
     }
 
     @Override

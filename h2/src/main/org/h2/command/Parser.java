@@ -4433,6 +4433,7 @@ public class Parser {
         command.setAliasName(aliasName);
         command.setIfNotExists(ifNotExists);
         command.setDeterministic(readIf("DETERMINISTIC"));
+        command.setNoCache(readIf("NOCACHE"));
         if (readIf("AS")) {
             command.setSource(readString());
         } else {

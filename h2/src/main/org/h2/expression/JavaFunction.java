@@ -184,8 +184,8 @@ public class JavaFunction extends Expression implements FunctionCall {
     }
 
     @Override
-    public boolean isFast() {
-        return false;
+    public boolean isResultCacheNeeded() {
+        return functionAlias.isResultCacheNeeded();
     }
 
 }
