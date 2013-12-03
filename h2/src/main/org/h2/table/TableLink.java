@@ -175,12 +175,13 @@ public class TableLink extends Table {
                     String n = rsMeta.getColumnName(i + 1);
                     n = convertColumnName(n);
                     int sqlType = rsMeta.getColumnType(i + 1);
+                    String sqlTypeName = rsMeta.getColumnTypeName(i + 1);
                     long precision = rsMeta.getPrecision(i + 1);
                     precision = convertPrecision(sqlType, precision);
                     int scale = rsMeta.getScale(i + 1);
                     scale = convertScale(sqlType, scale);
                     int displaySize = rsMeta.getColumnDisplaySize(i + 1);
-                    int type = DataType.convertSQLTypeToValueType(sqlType);
+                    int type = DataType.convertSQLTypeToValueType(sqlType, sqlTypeName);
                     Column col = new Column(n, type, precision, scale, displaySize);
                     col.setTable(this, i++);
                     columnList.add(col);
