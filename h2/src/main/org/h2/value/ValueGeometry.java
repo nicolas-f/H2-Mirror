@@ -35,10 +35,15 @@ public class ValueGeometry extends Value {
     /**
      * The value.
      */
-    private final Geometry geometry;
+    private Geometry geometry;
+    private byte[] bytes;
 
     private ValueGeometry(Geometry geometry) {
         this.geometry = geometry;
+    }
+
+    private ValueGeometry(byte[] bytes) {
+        this.bytes = bytes;
     }
 
     /**
@@ -79,10 +84,14 @@ public class ValueGeometry extends Value {
      * @return the value
      */
     public static ValueGeometry get(byte[] bytes) {
-        return (ValueGeometry) Value.cache(new ValueGeometry(fromWKB(bytes)));
+        return (ValueGeometry) Value.cache(new ValueGeometry(bytes));
     }
 
     public Geometry getGeometry() {
+        if(geometry == null && bytes != null) {
+            geometry = fromWKB(bytes);
+            bytes = null;
+        }
         return geometry;
     }
 
@@ -95,7 +104,7 @@ public class ValueGeometry extends Value {
      */
     public boolean intersectsBoundingBox(ValueGeometry r) {
         // the Geometry object caches the envelope
-        return geometry.getEnvelopeInternal().intersects(r.getGeometry().getEnvelopeInternal());
+        return getGeometry().getEnvelopeInternal().intersects(r.getGeometry().getEnvelopeInternal());
     }
 
     /**
@@ -106,7 +115,7 @@ public class ValueGeometry extends Value {
      */
     public Value getEnvelopeUnion(ValueGeometry r) {
         GeometryFactory gf = new GeometryFactory();
-        Envelope mergedEnvelope = new Envelope(geometry.getEnvelopeInternal());
+        Envelope mergedEnvelope = new Envelope(getGeometry().getEnvelopeInternal());
         mergedEnvelope.expandToInclude(r.getGeometry().getEnvelopeInternal());
         return get(gf.toGeometry(mergedEnvelope));
     }
@@ -118,7 +127,7 @@ public class ValueGeometry extends Value {
      * @return the intersection of this geometry envelope and another
      */
     public ValueGeometry getEnvelopeIntersection(ValueGeometry r) {
-        Envelope e1 = geometry.getEnvelopeInternal();
+        Envelope e1 = getGeometry().getEnvelopeInternal();
         Envelope e2 = r.getGeometry().getEnvelopeInternal();
         Envelope e3 = e1.intersection(e2);
         // try to re-use the object
@@ -143,8 +152,8 @@ public class ValueGeometry extends Value {
 
     @Override
     protected int compareSecure(Value v, CompareMode mode) {
-        Geometry g = ((ValueGeometry) v).geometry;
-        return geometry.compareTo(g);
+        Geometry g = ((ValueGeometry) v).getGeometry();
+        return getGeometry().compareTo(g);
     }
 
     @Override
@@ -159,12 +168,12 @@ public class ValueGeometry extends Value {
 
     @Override
     public int hashCode() {
-        return geometry.hashCode();
+        return getGeometry().hashCode();
     }
 
     @Override
     public Object getObject() {
-        return geometry;
+        return getGeometry();
     }
 
     @Override
@@ -179,7 +188,7 @@ public class ValueGeometry extends Value {
 
     @Override
     public void set(PreparedStatement prep, int parameterIndex) throws SQLException {
-        prep.setObject(parameterIndex, geometry);
+        prep.setObject(parameterIndex, getGeometry());
     }
 
     @Override
@@ -205,7 +214,7 @@ public class ValueGeometry extends Value {
      * @return the well-known-text
      */
     public String toWKT() {
-        return new WKTWriter().write(geometry);
+        return new WKTWriter().write(getGeometry());
     }
 
     /**
@@ -214,7 +223,11 @@ public class ValueGeometry extends Value {
      * @return the well-known-binary
      */
     public byte[] toWKB() {
-        return toWKB(geometry);
+        if(bytes != null) {
+            return bytes;
+        } else {
+            return toWKB(getGeometry());
+        }
     }
 
     private static byte[] toWKB(Geometry geometry) {
