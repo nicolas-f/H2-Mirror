@@ -66,6 +66,7 @@ public class TestSpatial extends TestBase {
             testWKB();
             testValueConversion();
             testEquals();
+            testHashCode();
             testTableFunctionGeometry();
             testAggregateWithGeometry();
             deleteDb("spatial");
@@ -674,6 +675,14 @@ public class TestSpatial extends TestBase {
         public Object getResult() throws SQLException {
             return new GeometryFactory().toGeometry(tableEnvelope);
         }
+    }
+
+    private void testHashCode() {
+        ValueGeometry geomA = ValueGeometry.get("POLYGON ((67 13 6, 67 18 5, 59 18 4, 59 13 6,  67 13 6))");
+        ValueGeometry geomB = ValueGeometry.get("POLYGON ((67 13 6, 67 18 5, 59 18 4, 59 13 6,  67 13 6))");
+        ValueGeometry geomC = ValueGeometry.get("POLYGON ((67 13 6, 67 18 5, 59 18 4, 59 13 5,  67 13 6))");
+        assertEquals(geomA.hashCode(), geomB.hashCode());
+        assertFalse(geomA.hashCode() == geomC.hashCode());
     }
 
 }
