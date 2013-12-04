@@ -168,7 +168,7 @@ public class ValueGeometry extends Value {
 
     @Override
     public int hashCode() {
-        return toWKB().hashCode();
+        return Arrays.hashCode(toWKB());
     }
 
     @Override
