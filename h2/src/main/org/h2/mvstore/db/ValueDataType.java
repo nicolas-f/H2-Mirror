@@ -255,6 +255,7 @@ public class ValueDataType implements DataType {
                 putVarLong(nanos);
             break;
         }
+        case Value.GEOMETRY:
         case Value.JAVA_OBJECT: {
             byte[] b = v.getBytesNoCopy();
             buff.put((byte) type).
@@ -402,14 +403,6 @@ public class ValueDataType implements DataType {
             } catch (SQLException e) {
                 throw DbException.convert(e);
             }
-            break;
-        }
-        case Value.GEOMETRY: {
-            byte[] b = v.getBytes();
-            int len = b.length;
-            buff.put((byte) type).
-                putVarInt(len).
-                put(b);
             break;
         }
         default:
