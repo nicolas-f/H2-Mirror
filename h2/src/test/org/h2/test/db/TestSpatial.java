@@ -84,6 +84,7 @@ public class TestSpatial extends TestBase {
         testEquals();
         testTableFunctionGeometry();
         testHashCode();
+        testAggregateWithGeometry();
     }
 
     private void testHashCode() {
@@ -680,7 +681,7 @@ public class TestSpatial extends TestBase {
                     throw new SQLException("TableEnvelope accept only Geometry argument");
                 }
             }
-            return new ColumnType(Types.JAVA_OBJECT, Geometry.class.getName());
+            return new ColumnType(Types.JAVA_OBJECT, "GEOMETRY");
         }
 
         @Override
