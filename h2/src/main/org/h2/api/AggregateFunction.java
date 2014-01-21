@@ -12,6 +12,7 @@ import java.sql.SQLException;
  * A user-defined aggregate function needs to implement this interface.
  * The class must be public and must have a public non-argument constructor.
  * This interface use standard SQL Data Types.
+ * @deprecated Implement {@link org.h2.api.AggregateTypeFunction} with h2 internal type instead of this limited SQL type api.
  */
 public interface AggregateFunction extends AggregateAlias {
 
