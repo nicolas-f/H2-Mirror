@@ -578,8 +578,8 @@ public class TestFunctions extends TestBase implements AggregateFunction {
         }
 
         @Override
-        public ColumnType getType(int[] inputTypes, String[] inputTypesName) throws SQLException {
-            return new ColumnType(Types.VARCHAR, "VARCHAR");
+        public int getInternalType(int[] inputTypes) throws SQLException {
+            return Value.STRING;
         }
 
         @Override

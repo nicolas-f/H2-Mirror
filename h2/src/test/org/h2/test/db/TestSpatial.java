@@ -678,13 +678,13 @@ public class TestSpatial extends TestBase {
         private Envelope tableEnvelope;
 
         @Override
-        public ColumnType getType(int[] inputTypes, String[] inputTypesName) throws SQLException {
-            for(String typeName : inputTypesName) {
-                if(!(typeName.equalsIgnoreCase("geometry") || typeName.equalsIgnoreCase(Geometry.class.getName()))) {
+        public int getInternalType(int[] inputTypes) throws SQLException {
+            for(int inputType : inputTypes) {
+                if(inputType != Value.GEOMETRY) {
                     throw new SQLException("TableEnvelope accept only Geometry argument");
                 }
             }
-            return new ColumnType(Types.JAVA_OBJECT, "GEOMETRY");
+            return Value.GEOMETRY;
         }
 
         @Override

@@ -120,14 +120,12 @@ public class JavaAggregate extends Expression {
         int len = args.length;
         argTypes = new int[len];
         int[] argSqlTypes = new int[len];
-        String[] argSqlTypeName = new String[len];
         for (int i = 0; i < len; i++) {
             Expression expr = args[i];
             args[i] = expr.optimize(session);
             int type = expr.getType();
             argTypes[i] = type;
             argSqlTypes[i] = DataType.convertTypeToSQLType(type);
-            argSqlTypeName[i] = DataType.getDataType(type).jdbc;
         }
         try {
             AggregateAlias aggregate = getInstance();
@@ -135,10 +133,9 @@ public class JavaAggregate extends Expression {
                 // Only standard SQL type
                 dataType = DataType.convertSQLTypeToValueType(((AggregateFunction) aggregate).getType(argSqlTypes));
             } else if(aggregate instanceof AggregateTypeFunction) {
-                // Manage SQL type extension
+                // Using H2 internal type codes
                 AggregateTypeFunction typeFunction = (AggregateTypeFunction)aggregate;
-                AggregateTypeFunction.ColumnType columnType = typeFunction.getType(argSqlTypes, argSqlTypeName);
-                dataType = DataType.convertSQLTypeToValueType(columnType.type, columnType.typeName);
+                dataType = typeFunction.getInternalType(argTypes);
             } else {
                 throw DbException.get(ErrorCode.UNKNOWN_AGGREGATE_IMPLEMENTATION);
             }

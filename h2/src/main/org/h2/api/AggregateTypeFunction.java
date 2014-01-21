@@ -15,31 +15,13 @@ import java.sql.SQLException;
 public interface AggregateTypeFunction extends AggregateAlias {
 
     /**
-     * This method must return the SQL type of the method, given the SQL type of
+     * This method must return the h2 SQL type of the method, given the h2 SQL type of
      * the input data. The method should check here if the number of parameters
      * passed is correct, and if not it should throw an exception.
      *
-     * @param inputTypes the SQL type of the parameters, {@link java.sql.Types}
-     * @param inputTypesName the SQL type name of the parameters  {@link java.sql.ResultSetMetaData#getColumnTypeName(int)}
-     * @return the SQL type of the result
+     * @param inputTypes the H2 SQL type of the parameters, {@link org.h2.value.Value}
+     * @return the h2 internal SQL type of the result
+     * @throws SQLException if the number/type of parameters passed is incorrect
      */
-    ColumnType getType(int[] inputTypes, String[] inputTypesName) throws SQLException;
-
-    /**
-     * Expected aggregate return type
-     */
-    public class ColumnType {
-        public final int type;
-        public final String typeName;
-
-        /**
-         * Constructor.
-         * @param type the SQL type {@link java.sql.Types}
-         * @param typeName the SQL type name. {@link java.sql.ResultSetMetaData#getColumnTypeName(int)}
-         */
-        public ColumnType(int type, String typeName) {
-            this.type = type;
-            this.typeName = typeName;
-        }
-    }
+    int getInternalType(int[] inputTypes) throws SQLException;
 }
