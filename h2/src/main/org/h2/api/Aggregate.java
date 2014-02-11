@@ -12,9 +12,8 @@ import java.sql.SQLException;
 /**
  * A user-defined aggregate function needs to implement this interface.
  * The class must be public and must have a public non-argument constructor.
- * @deprecated Implement {@link Aggregate} with h2 internal type instead of this limited SQL type api.
  */
-public interface AggregateFunction {
+public interface Aggregate {
 
     /**
      * This method is called when the aggregate function is used.
@@ -25,14 +24,15 @@ public interface AggregateFunction {
     void init(Connection conn) throws SQLException;
 
     /**
-     * This method must return the SQL type of the method, given the SQL type of
+     * This method must return the h2 SQL type of the method, given the h2 SQL type of
      * the input data. The method should check here if the number of parameters
      * passed is correct, and if not it should throw an exception.
      *
-     * @param inputTypes the SQL type of the parameters, {@link java.sql.Types}
-     * @return the SQL type of the result
+     * @param inputTypes the H2 SQL type of the parameters, {@link org.h2.value.Value}
+     * @return the h2 internal SQL type of the result
+     * @throws SQLException if the number/type of parameters passed is incorrect
      */
-    int getType(int[] inputTypes) throws SQLException;
+    int getInternalType(int[] inputTypes) throws SQLException;
 
     /**
      * This method is called once for each row.
