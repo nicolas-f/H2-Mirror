@@ -154,7 +154,10 @@ public class ValueGeometry extends Value {
 
     @Override
     public String getSQL() {
-        return StringUtils.quoteStringSQL(toWKT()) + "::Geometry";
+        // WKT does not hold Z or SRID with JTS 1.13
+        // As getSQL is used to export database, it should contains all object attributes
+        // Moreover using bytes is faster than converting WKB to Geometry then to WKT.
+        return "X'" + StringUtils.convertBytesToHex(getBytesNoCopy()) + "'::Geometry";
     }
 
     @Override

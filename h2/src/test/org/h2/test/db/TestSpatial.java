@@ -82,6 +82,7 @@ public class TestSpatial extends TestBase {
         testHashCode();
         testAggregateWithGeometry();
         testTableViewSpatialPredicate();
+        testValueGeometryScript();
     }
 
     private void testHashCode() {
@@ -730,5 +731,21 @@ public class TestSpatial extends TestBase {
             conn.close();
         }
         deleteDb("spatial");
+    }
+
+    /**
+     * Check ValueGeometry conversion into SQL script
+     */
+    private void testValueGeometryScript() throws SQLException {
+        ValueGeometry valueGeometry = ValueGeometry.get("POINT(1 1 5)");
+        Connection conn = getConnection(url);
+        try {
+            ResultSet rs = conn.createStatement().executeQuery("SELECT "+valueGeometry.getSQL());
+            assertTrue(rs.next());
+            assertTrue(valueGeometry.equals(ValueGeometry.getFromGeometry(rs.getObject(1))));
+        } finally {
+            conn.close();
+        }
+
     }
 }
