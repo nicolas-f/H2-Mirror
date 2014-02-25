@@ -307,6 +307,10 @@ public class ViewIndex extends BaseIndex {
                 q.addGlobalCondition(param, idx, Comparison.SMALLER_EQUAL);
                 i++;
             }
+            if ((mask & IndexCondition.SPATIAL_INTERSECTS) == IndexCondition.SPATIAL_INTERSECTS) {
+                // Do not filter rows at view cursor step, but do it later
+                i++;
+            }
         }
         columns = new Column[columnList.size()];
         columnList.toArray(columns);

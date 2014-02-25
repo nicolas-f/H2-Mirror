@@ -154,7 +154,7 @@ public class ValueGeometry extends Value {
 
     @Override
     public String getSQL() {
-        return StringUtils.quoteStringSQL(toWKT()) + "'::Geometry";
+        return StringUtils.quoteStringSQL(toWKT()) + "::Geometry";
     }
 
     @Override
