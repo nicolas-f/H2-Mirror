@@ -65,7 +65,6 @@ public class TestSpatial extends TestBase {
     }
 
     private void testSpatial() throws SQLException {
-        /*
         testSpatialValues();
         testOverlap();
         testNotOverlap();
@@ -82,7 +81,6 @@ public class TestSpatial extends TestBase {
         testTableFunctionGeometry();
         testHashCode();
         testAggregateWithGeometry();
-        */
         testTableViewSpatialPredicate();
     }
 
@@ -718,20 +716,10 @@ public class TestSpatial extends TestBase {
             stat.execute("insert into test values(1, 'POLYGON ((1 1, 1 2, 2 2, 1 1))')");
             stat.execute("insert into test values(2, 'POLYGON ((3 1, 3 2, 4 2, 3 1))')");
             stat.execute("insert into test values(3, 'POLYGON ((1 3, 1 4, 2 4, 1 3))')");
-            stat.execute("create spatial index on test(poly)");
             stat.execute("create view test_view as select * from test");
 
-            //Check result without index
+            //Check result with view
             ResultSet rs = stat.executeQuery(
-                    "select * from test_view where poly && 'POINT (1.5 1.5)'::Geometry");
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt("id"));
-            assertFalse(rs.next());
-            rs.close();
-
-
-            //Check result with index
-            rs = stat.executeQuery(
                     "select * from test_view where poly && 'POINT (1.5 1.5)'::Geometry");
             assertTrue(rs.next());
             assertEquals(1, rs.getInt("id"));
