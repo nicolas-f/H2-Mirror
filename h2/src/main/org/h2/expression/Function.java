@@ -48,6 +48,7 @@ import org.h2.tools.CompressTool;
 import org.h2.tools.Csv;
 import org.h2.util.AutoCloseInputStream;
 import org.h2.util.DateTimeUtils;
+import org.h2.util.GeometryMetaData;
 import org.h2.util.JdbcUtils;
 import org.h2.util.MathUtils;
 import org.h2.util.New;
@@ -61,6 +62,7 @@ import org.h2.value.ValueBoolean;
 import org.h2.value.ValueBytes;
 import org.h2.value.ValueDate;
 import org.h2.value.ValueDouble;
+import org.h2.value.ValueGeometry;
 import org.h2.value.ValueInt;
 import org.h2.value.ValueLong;
 import org.h2.value.ValueNull;
@@ -72,6 +74,8 @@ import org.h2.value.ValueUuid;
 
 /**
  * This class implements most built-in functions of this database.
+ * @author Thomas Mueller
+ * @author Nicolas Fortin, Atelier SIG, IRSTV FR CNRS 24888
  */
 public class Function extends Expression implements FunctionCall {
     public static final int ABS = 0, ACOS = 1, ASIN = 2, ATAN = 3, ATAN2 = 4, BITAND = 5, BITOR = 6, BITXOR = 7,
@@ -115,6 +119,8 @@ public class Function extends Expression implements FunctionCall {
     public static final int H2VERSION = 231;
 
     public static final int ROW_NUMBER = 300;
+
+    public static final int ST_GEOMFROMTEXT = 350, ST_SRID = 351;
 
     private static final int VAR_ARGS = -1;
     private static final long PRECISION_UNKNOWN = -1;
@@ -375,6 +381,10 @@ public class Function extends Expression implements FunctionCall {
 
         // ON DUPLICATE KEY VALUES function
         addFunction("VALUES", VALUES, 1, Value.NULL, false, true, false);
+
+        // SPATIAL functions
+        addFunction("ST_GEOMFROMTEXT", ST_GEOMFROMTEXT, VAR_ARGS, Value.GEOMETRY);
+        addFunction("ST_SRID", ST_SRID, VAR_ARGS, Value.GEOMETRY);
     }
 
     protected Function(Database database, FunctionInfo info) {
@@ -1416,6 +1426,16 @@ public class Function extends Expression implements FunctionCall {
             result = session.getVariable(args[0].getSchemaName() + "." +
                     args[0].getTableName() + "." + args[0].getColumnName());
             break;
+        case ST_GEOMFROMTEXT:
+            result = ValueGeometry.get(v0.getString(), v1 == null ? 0 : v1.getInt());
+            break;
+        case ST_SRID:
+            try {
+                result = ValueInt.get(GeometryMetaData.getMetaDataFromWKB(v0.getBytesNoCopy()).SRID);
+            } catch (IOException e) {
+                    throw DbException.convertIOException(e, "Invalid WKB");
+            }
+            break;
         default:
             throw DbException.throwInternalError("type=" + info.type);
         }
@@ -1830,6 +1850,7 @@ public class Function extends Expression implements FunctionCall {
         case NOW:
         case CURRENT_TIMESTAMP:
         case RAND:
+        case ST_SRID:
             max = 1;
             break;
         case COMPRESS:
@@ -1873,6 +1894,7 @@ public class Function extends Expression implements FunctionCall {
             break;
         case CURRVAL:
         case NEXTVAL:
+        case ST_GEOMFROMTEXT:
             min = 1;
             max = 2;
             break;

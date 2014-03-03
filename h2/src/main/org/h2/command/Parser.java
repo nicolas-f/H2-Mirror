@@ -3929,7 +3929,7 @@ public class Parser {
         // MySQL compatibility
         readIf("UNSIGNED");
         int type = dataType.type;
-        if (scale > precision) {
+        if (scale > precision && type != Value.GEOMETRY) {
             throw DbException.get(ErrorCode.INVALID_VALUE_2, Integer.toString(scale), "scale (precision = " + precision + ")");
         }
         Column column = new Column(columnName, type, precision, scale, displaySize);

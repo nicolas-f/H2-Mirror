@@ -13,12 +13,14 @@ import java.util.Arrays;
 
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.CoordinateSequenceFilter;
+import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.ByteArrayInStream;
 import com.vividsolutions.jts.io.ByteOrderDataInStream;
 import com.vividsolutions.jts.io.ByteOrderValues;
 import com.vividsolutions.jts.io.WKBConstants;
 import org.h2.constant.ErrorCode;
 import org.h2.message.DbException;
+import org.h2.util.GeometryMetaData;
 import org.h2.util.StringUtils;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -133,46 +135,36 @@ public class ValueGeometry extends Value {
         if(geometryType < Integer.MAX_VALUE && geometryType != 0 && getBytes() != null) {
             // If there is a Geometry type constraint
             try {
-                int typeCode = getGeometryType(getBytesNoCopy());
-                if(getGeometryType(getBytesNoCopy()) != geometryType) {
+                int typeCode = GeometryMetaData.getMetaDataFromWKB(getBytesNoCopy()).geometryType;
+                if(typeCode != geometryType) {
                     throw DbException.get(ErrorCode.GEOMETRY_TYPE_CONSTRAINT_VIOLATION, "Expected geometry type code "+geometryType+" found "+typeCode);
                 }
             } catch (IOException ex) {
-                return false; // WKB format error
+                throw DbException.convertIOException(ex, "Wrong WKB");
             }
         }
         return true;
     }
 
     /**
-     * Check geometry SRID
+     * Check geometry SRID. If the geometry SRID does not comply with Column constraint then an exception is raised.
      * @param onlyToSmallerScale if the scale should not reduced
      * @param targetScale the requested scale
-     * @return
+     * @return this
      */
     @Override
     public Value convertScale(boolean onlyToSmallerScale, int targetScale) {
         srid_constraint = targetScale;
+        try {
+            if(srid_constraint!=0 && srid_constraint!=Integer.MAX_VALUE && getBytesNoCopy()!=null
+                    && GeometryMetaData.getMetaDataFromWKB(getBytesNoCopy()).SRID != srid_constraint) {
+                        throw DbException.get(ErrorCode.GEOMETRY_SRID_CONSTRAINT_VIOLATION,
+                                Integer.toString(srid_constraint), Integer.toString(srid_constraint));
+            }
+        } catch (IOException ex) {
+            throw DbException.convertIOException(ex, "Wrong WKB");
+        }
         return this;
-    }
-
-    /**
-     * Extract only geometry type from WKB.
-     * WKB Conversion source from {@link com.vividsolutions.jts.io.WKBReader}
-     * @param bytes Geometry bytes
-     * @return Geometry type, see constants in ValueGeometry
-     * @throws IOException
-     */
-    public static int getGeometryType(byte[] bytes) throws IOException {
-        ByteOrderDataInStream dis = new ByteOrderDataInStream();
-        dis.setInStream(new ByteArrayInStream(bytes));
-        // determine byte order
-        byte byteOrderWKB = dis.readByte();
-        // always set byte order, since it may change from geometry to geometry
-        int byteOrder = byteOrderWKB == WKBConstants.wkbNDR ? ByteOrderValues.LITTLE_ENDIAN : ByteOrderValues.BIG_ENDIAN;
-        dis.setOrder(byteOrder);
-        int typeInt = dis.readInt();
-        return typeInt & 0xff;
     }
 
     private static int getDimensionCount(Geometry geometry) {
@@ -188,8 +180,18 @@ public class ValueGeometry extends Value {
      * @return the value
      */
     public static ValueGeometry get(String s) {
+        return get(s, 0);
+    }
+
+    /**
+     * Get or create a geometry value for the given geometry.
+     *
+     * @param s the WKT representation of the geometry
+     * @return the value
+     */
+    public static ValueGeometry get(String s,int srid) {
         try {
-            Geometry g = new WKTReader().read(s);
+            Geometry g = new WKTReader(new GeometryFactory(new PrecisionModel(),srid)).read(s);
             return get(g);
         } catch (ParseException ex) {
             throw DbException.convert(ex);

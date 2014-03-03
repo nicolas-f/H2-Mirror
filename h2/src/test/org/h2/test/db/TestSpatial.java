@@ -16,6 +16,7 @@ import java.util.Random;
 
 import com.vividsolutions.jts.geom.Envelope;
 import org.h2.api.Aggregate;
+import org.h2.constant.ErrorCode;
 import org.h2.engine.Constants;
 import org.h2.schema.Constant;
 import org.h2.test.TestBase;
@@ -88,6 +89,8 @@ public class TestSpatial extends TestBase {
         testValueGeometryScript();
         testGeometryTypeConstraint();
         testGeometrySRIDConstraint();
+        testGeometryIncorrectTypeConstraint();
+        testGeometryIncorrectSRIDConstraint();
     }
 
     private void testHashCode() {
@@ -763,25 +766,53 @@ public class TestSpatial extends TestBase {
         }
     }
 
+    /**
+     * Geometry column can define a geometry type as a constraint.
+     * In order to retrieve the geometry type through view, the attribute is
+     * stored in the precision parameter.
+     * @throws SQLException
+     */
     private void testGeometryTypeConstraint() throws SQLException {
         Connection conn = getConnection(url);
         Statement st = conn.createStatement();
         try {
             st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
             st.execute("DROP CONSTANT IF EXISTS POLYGON");
-            st.execute("CREATE CONSTANT POLYGON VALUE 6");
+            st.execute("CREATE CONSTANT POLYGON VALUE 3");
             st.execute("CREATE TABLE POLYGON_TABLE(the_geom GEOMETRY(POLYGON))");
             st.execute("INSERT INTO POLYGON_TABLE VALUES ('POLYGON((1 1, 2 1, 2 2, 1 2, 1 1))')");
             ResultSet rs = conn.createStatement().executeQuery(
                     "SELECT * from POLYGON_TABLE");
             ResultSetMetaData meta = rs.getMetaData();
-            assertEquals(6, meta.getPrecision(1));
+            assertEquals(3, meta.getPrecision(1));
         } finally {
             st.close();
             conn.close();
         }
     }
 
+    private void testGeometryIncorrectTypeConstraint() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
+            st.execute("DROP CONSTANT IF EXISTS POLYGON");
+            st.execute("CREATE CONSTANT POLYGON VALUE 3");
+            st.execute("CREATE TABLE POLYGON_TABLE(the_geom GEOMETRY(POLYGON))");
+            assertThrows(ErrorCode.GEOMETRY_TYPE_CONSTRAINT_VIOLATION, st).execute("INSERT INTO POLYGON_TABLE VALUES ('POINT(1 1)')");
+        } finally {
+            st.close();
+            conn.close();
+        }
+    }
+
+    /**
+     * Geometry column can define a geometry SRID (EPSG) as projection;
+     * defined as a constraint. In order to retrieve the
+     * geometry type through table view, the attribute is stored in the
+     * precision parameter.
+     * @throws SQLException
+     */
     private void testGeometrySRIDConstraint() throws SQLException {
         Connection conn = getConnection(url);
         Statement st = conn.createStatement();
@@ -789,9 +820,32 @@ public class TestSpatial extends TestBase {
             st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
             st.execute("CREATE TABLE WGS84_TABLE(the_geom GEOMETRY(0, 4326))");
             ResultSet rs = conn.createStatement().executeQuery(
-                    "SELECT * from POLYGON_TABLE");
+                    "SELECT * from WGS84_TABLE");
             ResultSetMetaData meta = rs.getMetaData();
-            assertEquals(6, meta.getPrecision(1));
+            assertEquals(4326, meta.getScale(1));
+            st.execute("INSERT INTO WGS84_TABLE VALUES (ST_GeomFromText('POINT(1 1)',4326))");
+        } finally {
+            st.close();
+            conn.close();
+        }
+    }
+
+    /**
+     * Test SRID constraint with wrong insert.
+     * @throws SQLException
+     */
+    private void testGeometryIncorrectSRIDConstraint() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
+            st.execute("CREATE TABLE WGS84_TABLE(the_geom GEOMETRY(0, 4326))");
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT * from WGS84_TABLE");
+            ResultSetMetaData meta = rs.getMetaData();
+            assertEquals(4326, meta.getScale(1));
+            assertThrows(ErrorCode.GEOMETRY_SRID_CONSTRAINT_VIOLATION, st)
+                    .execute("INSERT INTO WGS84_TABLE VALUES (ST_GeomFromText('POINT(1 1)',27572))");
         } finally {
             st.close();
             conn.close();
