@@ -354,7 +354,7 @@ public class DataType {
                 104
         );
         add(Value.GEOMETRY, Types.OTHER, "Geometry",
-                createString(false),
+                createGeometry(),
                 new String[]{"GEOMETRY"},
                 32
         );
@@ -460,6 +460,14 @@ public class DataType {
         dataType.maxPrecision = Integer.MAX_VALUE;
         dataType.defaultPrecision = Integer.MAX_VALUE;
         dataType.defaultDisplaySize = Integer.MAX_VALUE;
+        return dataType;
+    }
+
+    private static DataType createGeometry() {
+        DataType dataType = createString(false);
+        dataType.supportsScale = true;  // Scale is used for SRID constraint
+        dataType.defaultPrecision = 0;  // Default geometry type constraint is geometry
+        dataType.defaultScale = 0;      // No SRID constraint
         return dataType;
     }
 

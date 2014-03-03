@@ -7,6 +7,7 @@ package org.h2.test.db;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
@@ -83,6 +84,8 @@ public class TestSpatial extends TestBase {
         testAggregateWithGeometry();
         testTableViewSpatialPredicate();
         testValueGeometryScript();
+        testGeometryTypeConstraint();
+        testGeometrySRIDConstraint();
     }
 
     private void testHashCode() {
@@ -798,6 +801,64 @@ public class TestSpatial extends TestBase {
             ValueGeometry g = ValueGeometry.getFromGeometry(obj);
             assertTrue("got: " + g + " exp: " + valueGeometry, valueGeometry.equals(g));
         } finally {
+            conn.close();
+        }
+    }
+
+    /**
+     * Geometry column can define a geometry type (should be a constraint).
+     * In order to retrieve the geometry type through view, the attribute is
+     * stored in the precision parameter.
+     * @throws SQLException
+     */
+    private void testGeometryTypeConstraint() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
+            st.execute("DROP CONSTANT IF EXISTS POLYGON");
+            st.execute("CREATE CONSTANT POLYGON VALUE 6");
+            st.execute("CREATE TABLE POLYGON_TABLE(the_geom GEOMETRY(POLYGON))");
+            st.execute("INSERT INTO POLYGON_TABLE VALUES ('POLYGON((1 1, 2 1, 2 2, 1 2, 1 1))')");
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT * from POLYGON_TABLE");
+            try {
+                ResultSetMetaData meta = rs.getMetaData();
+                assertEquals(6, meta.getPrecision(1));
+            } finally {
+                rs.close();
+            }
+            st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
+        } finally {
+            st.close();
+            conn.close();
+        }
+    }
+
+
+    /**
+     * Geometry column can define a geometry SRID (EPSG) as projection; it
+     * should be defined later as a constraint. In order to retrieve the
+     * geometry type through table view, the attribute is stored in the
+     * precision parameter.
+     * @throws SQLException
+     */
+    private void testGeometrySRIDConstraint() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
+            st.execute("CREATE TABLE WGS84_TABLE(the_geom GEOMETRY(0, 4326))");
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT * from WGS84_TABLE");
+            try {
+                ResultSetMetaData meta = rs.getMetaData();
+                assertEquals(4326, meta.getScale(1));
+            } finally {
+                rs.close();
+            }
+        } finally {
+            st.close();
             conn.close();
         }
     }

@@ -3974,7 +3974,14 @@ public class Parser {
         if (dataType.supportsPrecision || dataType.supportsScale) {
             if (readIf("(")) {
                 if (!readIf("MAX")) {
-                    long p = readLong();
+                    // Read precision, can be a constant
+                    Expression expression = readExpression().optimize(session);
+                    long p;
+                    if(expression instanceof ValueExpression) {
+                        p = expression.getValue(session).getLong();
+                    } else {
+                        throw DbException.getSyntaxError(sqlCommand, parseIndex, "long");
+                    }
                     if (readIf("K")) {
                         p *= 1024;
                     } else if (readIf("M")) {
@@ -3990,7 +3997,13 @@ public class Parser {
                     readIf("CHAR");
                     if (dataType.supportsScale) {
                         if (readIf(",")) {
-                            scale = getInt();
+                            // Read precision, can be a constant
+                            expression = readExpression();
+                            if(expression instanceof ValueExpression) {
+                                scale = expression.getValue(session).getInt();
+                            } else {
+                                throw DbException.getSyntaxError(sqlCommand, parseIndex, "int");
+                            }
                             original += ", " + scale;
                         } else {
                             // special case: TIMESTAMP(5) actually means
@@ -4025,7 +4038,7 @@ public class Parser {
         // MySQL compatibility
         readIf("UNSIGNED");
         int type = dataType.type;
-        if (scale > precision) {
+        if (scale > precision && dataType.type != Value.GEOMETRY) {
             throw DbException.get(ErrorCode.INVALID_VALUE_2,
                     Integer.toString(scale), "scale (precision = " + precision +
                             ")");
