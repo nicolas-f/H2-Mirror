@@ -1893,6 +1893,23 @@ public class ErrorCode {
      */
     public static final int JAVA_OBJECT_SERIALIZER_CHANGE_WITH_DATA_TABLE = 90141;
 
+    /**
+     * The error with code <code>90142</code> is thrown when trying to insert
+     * or update a geometry that do not comply with column geometry type
+     * constraint.
+     * ex: Column GEOMETRY(POLYGON) then insert 'POINT(1 1)'
+     */
+    public static final int GEOMETRY_TYPE_CONSTRAINT_VIOLATION = 90142;
+
+
+    /**
+     * The error with code <code>90143</code> is thrown when trying to insert
+     * or update a geometry that do not comply with column geometry srid
+     * constraint.
+     * ex: Column GEOMETRY(0, 27572) then insert ST_GeomFromText('POINT(1 1)', 4326)
+     */
+    public static final int GEOMETRY_SRID_CONSTRAINT_VIOLATION = 90143;
+
 
     // next are 90011, 90021, 90039,
     // 90051, 90056, 90110, 90122, 90142

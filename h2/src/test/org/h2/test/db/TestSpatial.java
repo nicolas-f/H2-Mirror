@@ -7,6 +7,7 @@ package org.h2.test.db;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
@@ -15,6 +16,8 @@ import java.util.Random;
 
 import com.vividsolutions.jts.geom.Envelope;
 import org.h2.api.Aggregate;
+import org.h2.engine.Constants;
+import org.h2.schema.Constant;
 import org.h2.test.TestBase;
 import org.h2.tools.SimpleResultSet;
 import org.h2.tools.SimpleRowSource;
@@ -83,6 +86,8 @@ public class TestSpatial extends TestBase {
         testAggregateWithGeometry();
         testTableViewSpatialPredicate();
         testValueGeometryScript();
+        testGeometryTypeConstraint();
+        testGeometrySRIDConstraint();
     }
 
     private void testHashCode() {
@@ -754,6 +759,41 @@ public class TestSpatial extends TestBase {
             ValueGeometry g = ValueGeometry.getFromGeometry(obj);
             assertTrue("got: " + g + " exp: " + valueGeometry, valueGeometry.equals(g));
         } finally {
+            conn.close();
+        }
+    }
+
+    private void testGeometryTypeConstraint() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
+            st.execute("DROP CONSTANT IF EXISTS POLYGON");
+            st.execute("CREATE CONSTANT POLYGON VALUE 6");
+            st.execute("CREATE TABLE POLYGON_TABLE(the_geom GEOMETRY(POLYGON))");
+            st.execute("INSERT INTO POLYGON_TABLE VALUES ('POLYGON((1 1, 2 1, 2 2, 1 2, 1 1))')");
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT * from POLYGON_TABLE");
+            ResultSetMetaData meta = rs.getMetaData();
+            assertEquals(6, meta.getPrecision(1));
+        } finally {
+            st.close();
+            conn.close();
+        }
+    }
+
+    private void testGeometrySRIDConstraint() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
+            st.execute("CREATE TABLE WGS84_TABLE(the_geom GEOMETRY(0, 4326))");
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT * from POLYGON_TABLE");
+            ResultSetMetaData meta = rs.getMetaData();
+            assertEquals(6, meta.getPrecision(1));
+        } finally {
+            st.close();
             conn.close();
         }
     }
