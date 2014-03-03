@@ -819,11 +819,14 @@ public class TestSpatial extends TestBase {
         try {
             st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
             st.execute("CREATE TABLE WGS84_TABLE(the_geom GEOMETRY(0, 4326))");
+            st.execute("INSERT INTO WGS84_TABLE VALUES (ST_GeomFromText('POINT(1 1)',4326))");
             ResultSet rs = conn.createStatement().executeQuery(
-                    "SELECT * from WGS84_TABLE");
+                    "SELECT the_geom, ST_SRID(the_geom) srid from WGS84_TABLE");
+            assertTrue(rs.next());
+            assertEquals(4326, rs.getInt("srid"));
+            assertFalse(rs.next());
             ResultSetMetaData meta = rs.getMetaData();
             assertEquals(4326, meta.getScale(1));
-            st.execute("INSERT INTO WGS84_TABLE VALUES (ST_GeomFromText('POINT(1 1)',4326))");
         } finally {
             st.close();
             conn.close();
