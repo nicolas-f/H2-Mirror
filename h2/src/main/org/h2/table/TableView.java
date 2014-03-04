@@ -41,6 +41,8 @@ import org.h2.value.Value;
 
 /**
  * A view is a virtual table that is defined by a query.
+ * @author Thomas Mueller
+ * @author Nicolas Fortin, Atelier SIG, IRSTV FR CNRS 24888
  */
 public class TableView extends Table {
 
