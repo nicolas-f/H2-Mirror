@@ -7,6 +7,7 @@
 package org.h2.test.db;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,6 +44,7 @@ public class TestView extends TestBase {
         testManyViews();
         testReferenceView();
         testViewAlterAndCommandCache();
+        testViewConstraintFromColumnExpression();
         deleteDb("view");
     }
 
@@ -207,7 +209,7 @@ public class TestView extends TestBase {
         s.execute("create view t1 as select * from t0");
         assertThrows(ErrorCode.FEATURE_NOT_SUPPORTED_1, s).execute(
                 "create table t2(id int primary key, " +
-                "col1 int not null, foreign key (col1) references t1(id))");
+                        "col1 int not null, foreign key (col1) references t1(id))");
         conn.close();
         deleteDb("view");
     }
@@ -236,4 +238,36 @@ public class TestView extends TestBase {
         deleteDb("view");
     }
 
+    /**
+     * Make sure that the table constraint is still available when create a view of other table.
+     */
+    private void testViewConstraintFromColumnExpression() throws SQLException {
+        deleteDb("view");
+        Connection conn = getConnection("view");
+        Statement stat = conn.createStatement();
+        stat.execute("create table t0(id1 int primary key CHECK ((ID1 % 2) = 0))");
+        stat.execute("create table t1(id2 int primary key CHECK ((ID2 % 1) = 0))");
+        stat.execute("insert into t0 values(0)");
+        stat.execute("insert into t1 values(1)");
+        stat.execute("create view v1 as select * from t0,t1");
+        // Check with ColumnExpression
+        ResultSet rs = stat.executeQuery("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = 'V1'");
+        assertTrue(rs.next());
+        assertEquals("ID1", rs.getString("COLUMN_NAME"));
+        assertEquals("((ID1 % 2) = 0)", rs.getString("CHECK_CONSTRAINT"));
+        assertTrue(rs.next());
+        assertEquals("ID2", rs.getString("COLUMN_NAME"));
+        assertEquals("((ID2 % 1) = 0)", rs.getString("CHECK_CONSTRAINT"));
+        // Check with AliasExpression
+        stat.execute("create view v2 as select ID1 key1,ID2 key2 from t0,t1");
+        rs = stat.executeQuery("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = 'V2'");
+        assertTrue(rs.next());
+        assertEquals("KEY1", rs.getString("COLUMN_NAME"));
+        assertEquals("((KEY1 % 2) = 0)", rs.getString("CHECK_CONSTRAINT"));
+        assertTrue(rs.next());
+        assertEquals("KEY2", rs.getString("COLUMN_NAME"));
+        assertEquals("((KEY2 % 1) = 0)", rs.getString("CHECK_CONSTRAINT"));
+        conn.close();
+        deleteDb("view");
+    }
 }
