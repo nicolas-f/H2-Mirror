@@ -785,6 +785,7 @@ public class TestSpatial extends TestBase {
                     "SELECT * from POLYGON_TABLE");
             ResultSetMetaData meta = rs.getMetaData();
             assertEquals(3, meta.getPrecision(1));
+            st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
         } finally {
             st.close();
             conn.close();
@@ -800,6 +801,7 @@ public class TestSpatial extends TestBase {
             st.execute("CREATE CONSTANT POLYGON VALUE 3");
             st.execute("CREATE TABLE POLYGON_TABLE(the_geom GEOMETRY(POLYGON))");
             assertThrows(ErrorCode.GEOMETRY_TYPE_CONSTRAINT_VIOLATION, st).execute("INSERT INTO POLYGON_TABLE VALUES ('POINT(1 1)')");
+            st.execute("DROP TABLE IF EXISTS POLYGON_TABLE");
         } finally {
             st.close();
             conn.close();
@@ -827,6 +829,7 @@ public class TestSpatial extends TestBase {
             assertFalse(rs.next());
             ResultSetMetaData meta = rs.getMetaData();
             assertEquals(4326, meta.getScale(1));
+            st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
         } finally {
             st.close();
             conn.close();
@@ -847,8 +850,33 @@ public class TestSpatial extends TestBase {
                     "SELECT * from WGS84_TABLE");
             ResultSetMetaData meta = rs.getMetaData();
             assertEquals(4326, meta.getScale(1));
+            rs.close();
             assertThrows(ErrorCode.GEOMETRY_SRID_CONSTRAINT_VIOLATION, st)
                     .execute("INSERT INTO WGS84_TABLE VALUES (ST_GeomFromText('POINT(1 1)',27572))");
+            st.execute("DROP TABLE IF EXISTS WGS84_TABLE");
+        } finally {
+            st.close();
+            conn.close();
+        }
+    }
+
+    /**
+     * Check if SRID,GeometryType constraints are always available when we create a view.
+     */
+    private void testColumnAttributes() throws SQLException {
+        Connection conn = getConnection(url);
+        Statement st = conn.createStatement();
+        try {
+            st.execute("create view geometry_columns as select TABLE_CATALOG f_table_catalog,TABLE_SCHEMA f_table_schema,TABLE_NAME f_table_name," +
+                    "COLUMN_NAME f_geometry_column,1 storage_type,NUMERIC_PRECISION geometry_type,2 coord_dimension,NUMERIC_SCALE srid");
+
+            st.execute("DROP CONSTANT IF EXISTS POLYGON");
+            st.execute("CREATE CONSTANT POLYGON VALUE 3");
+            st.execute("CREATE TABLE POLYGON_TABLE(the_geom GEOMETRY(POLYGON, ))");
+
+            ResultSet rs = conn.createStatement().executeQuery(
+                    "SELECT * from geometry_columns where f_table_name IN ('POLYGON_TABLE')");
+            assertTrue(rs.next());
         } finally {
             st.close();
             conn.close();
