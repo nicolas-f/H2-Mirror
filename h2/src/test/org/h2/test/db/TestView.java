@@ -267,6 +267,15 @@ public class TestView extends TestBase {
         assertTrue(rs.next());
         assertEquals("KEY2", rs.getString("COLUMN_NAME"));
         assertEquals("((KEY2 % 1) = 0)", rs.getString("CHECK_CONSTRAINT"));
+        // Check hide of constraint if column is an Operation
+        stat.execute("create view v3 as select ID1 + 1 ID1, ID2 + 1 ID2 from t0,t1");
+        rs = stat.executeQuery("select * from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = 'V3'");
+        assertTrue(rs.next());
+        assertEquals("ID1", rs.getString("COLUMN_NAME"));
+        assertEquals("", rs.getString("CHECK_CONSTRAINT"));
+        assertTrue(rs.next());
+        assertEquals("ID2", rs.getString("COLUMN_NAME"));
+        assertEquals("", rs.getString("CHECK_CONSTRAINT"));
         conn.close();
         deleteDb("view");
     }
