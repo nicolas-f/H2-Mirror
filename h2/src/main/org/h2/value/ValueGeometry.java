@@ -12,6 +12,7 @@ import java.util.Arrays;
 
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.CoordinateSequenceFilter;
+import com.vividsolutions.jts.geom.PrecisionModel;
 import org.h2.message.DbException;
 import org.h2.util.StringUtils;
 import com.vividsolutions.jts.geom.Envelope;
@@ -109,6 +110,22 @@ public class ValueGeometry extends Value {
     /**
      * Get or create a geometry value for the given geometry.
      *
+     * @param s the WKT representation of the geometry
+     * @return the value
+     */
+    public static ValueGeometry get(String s, int SRID) {
+        try {
+            GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), SRID);
+            Geometry g = new WKTReader(geometryFactory).read(s);
+            return get(g);
+        } catch (ParseException ex) {
+            throw DbException.convert(ex);
+        }
+    }
+
+    /**
+     * Get or create a geometry value for the given geometry.
+     *
      * @param bytes the WKB representation of the geometry
      * @return the value
      */
@@ -117,14 +134,13 @@ public class ValueGeometry extends Value {
     }
 
     public Geometry getGeometry() {
-        if (geometry == null) {
-            try {
-                geometry = new WKBReader().read(bytes);
-            } catch (ParseException ex) {
-                throw DbException.convert(ex);
-            }
+        try {
+            // Create a new geometry instance in order to avoid user in-place modifications
+            geometry = new WKBReader().read(bytes);
+            return geometry;
+        } catch (ParseException ex) {
+            throw DbException.convert(ex);
         }
-        return geometry;
     }
 
     /**
