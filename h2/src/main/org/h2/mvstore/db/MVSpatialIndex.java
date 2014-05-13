@@ -18,6 +18,7 @@ import org.h2.index.Cursor;
 import org.h2.index.IndexCondition;
 import org.h2.index.IndexType;
 import org.h2.index.SpatialIndex;
+import org.h2.index.SpatialTreeIndex;
 import org.h2.message.DbException;
 import org.h2.mvstore.db.TransactionStore.Transaction;
 import org.h2.mvstore.db.TransactionStore.TransactionMap;
@@ -257,19 +258,7 @@ public class MVSpatialIndex extends BaseIndex implements SpatialIndex, MVIndex {
     @Override
     protected long getCostRangeIndex(int[] masks, long rowCount,
             TableFilter filter, SortOrder sortOrder) {
-        rowCount += Constants.COST_ROW_OFFSET;
-        long cost = rowCount;
-        if (masks == null) {
-            return cost;
-        }
-        for (Column column : columns) {
-            int index = column.getColumnId();
-            int mask = masks[index];
-            if ((mask & IndexCondition.SPATIAL_INTERSECTS) != 0) {
-                cost = 3 + rowCount / 4;
-            }
-        }
-        return cost;
+        return SpatialTreeIndex.getCost(rowCount, masks, columns);
     }
 
     @Override
