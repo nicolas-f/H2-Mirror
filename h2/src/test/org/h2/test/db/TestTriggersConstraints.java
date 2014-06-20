@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.h2.api.ErrorCode;
 import org.h2.api.Trigger;
@@ -26,6 +27,7 @@ import org.h2.util.Task;
 public class TestTriggersConstraints extends TestBase implements Trigger {
 
     private static boolean mustNotCallTrigger;
+    private static boolean initException = false;
     private String triggerName;
 
     /**
@@ -51,6 +53,7 @@ public class TestTriggersConstraints extends TestBase implements Trigger {
         testConstraints();
         testCheckConstraintErrorMessage();
         testMultiPartForeignKeys();
+        testTriggersAlterTable();
         deleteDb("trigger");
     }
 
@@ -480,6 +483,84 @@ public class TestTriggersConstraints extends TestBase implements Trigger {
         conn.close();
     }
 
+    private void testTriggersAlterTable() throws SQLException {
+        mustNotCallTrigger = false;
+        Connection conn = getConnection("trigger");
+        Statement stat = conn.createStatement();
+        stat.execute("DROP TABLE IF EXISTS TEST");
+        stat.execute("CREATE TABLE TEST(ID INT PRIMARY KEY, NAME VARCHAR(255))");
+        // CREATE TRIGGER trigger {BEFORE|AFTER}
+        // {INSERT|UPDATE|DELETE|ROLLBACK} ON table
+        // [FOR EACH ROW] [QUEUE n] [NOWAIT] CALL triggeredClass
+        stat.execute("CREATE TRIGGER IF NOT EXISTS INS_BEFORE " +
+                "BEFORE INSERT ON TEST " +
+                "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\"");
+        stat.execute("CREATE TRIGGER IF NOT EXISTS INS_BEFORE " +
+                "BEFORE INSERT ON TEST " +
+                "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\"");
+        stat.execute("CREATE TRIGGER INS_AFTER " + "" +
+                "AFTER INSERT ON TEST " +
+                "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\"");
+        stat.execute("CREATE TRIGGER UPD_BEFORE " +
+                "BEFORE UPDATE ON TEST " +
+                "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\"");
+        stat.execute("CREATE TRIGGER INS_AFTER_ROLLBACK " +
+                "AFTER INSERT, ROLLBACK ON TEST " +
+                "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\"");
+        stat.execute("ALTER TABLE TEST ALTER COLUMN NAME CHAR(60)");
+        stat.execute("INSERT INTO TEST VALUES(1, 'Hello')");
+        assertFalse(initException);
+        ResultSet rs;
+        rs = stat.executeQuery("SCRIPT");
+        checkRows(rs, new String[] {
+                "CREATE FORCE TRIGGER PUBLIC.INS_BEFORE " +
+                        "BEFORE INSERT ON PUBLIC.TEST " +
+                        "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\";",
+                "CREATE FORCE TRIGGER PUBLIC.INS_AFTER " +
+                        "AFTER INSERT ON PUBLIC.TEST " +
+                        "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\";",
+                "CREATE FORCE TRIGGER PUBLIC.UPD_BEFORE " +
+                        "BEFORE UPDATE ON PUBLIC.TEST " +
+                        "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\";",
+                "CREATE FORCE TRIGGER PUBLIC.INS_AFTER_ROLLBACK " +
+                        "AFTER INSERT, ROLLBACK ON PUBLIC.TEST " +
+                        "FOR EACH ROW NOWAIT CALL \"" + getClass().getName() + "\";",
+        });
+        while (rs.next()) {
+            String sql = rs.getString(1);
+            if (sql.startsWith("CREATE TRIGGER")) {
+                System.out.println(sql);
+            }
+        }
+
+        rs = stat.executeQuery("SELECT * FROM TEST");
+        rs.next();
+        assertEquals("Hello-updated", rs.getString(2));
+        assertFalse(rs.next());
+        stat.execute("UPDATE TEST SET NAME=NAME||'-upd'");
+        rs = stat.executeQuery("SELECT * FROM TEST");
+        rs.next();
+        assertEquals("Hello-updated-upd-updated2", rs.getString(2));
+        assertFalse(rs.next());
+
+        mustNotCallTrigger = true;
+        stat.execute("DROP TRIGGER IF EXISTS INS_BEFORE");
+        stat.execute("DROP TRIGGER IF EXISTS INS_BEFORE");
+        stat.execute("DROP TRIGGER IF EXISTS INS_AFTER_ROLLBACK");
+        assertThrows(ErrorCode.TRIGGER_NOT_FOUND_1, stat).
+                execute("DROP TRIGGER INS_BEFORE");
+        stat.execute("DROP TRIGGER  INS_AFTER");
+        stat.execute("DROP TRIGGER  UPD_BEFORE");
+        stat.execute("UPDATE TEST SET NAME=NAME||'-upd-no_trigger'");
+        stat.execute("INSERT INTO TEST VALUES(100, 'Insert-no_trigger')");
+        conn.close();
+
+        conn = getConnection("trigger");
+
+        mustNotCallTrigger = false;
+        conn.close();
+    }
+
     private void testTriggers() throws SQLException {
         mustNotCallTrigger = false;
         Connection conn = getConnection("trigger");
@@ -613,15 +694,18 @@ public class TestTriggersConstraints extends TestBase implements Trigger {
             String tableName, boolean before, int type) {
         this.triggerName = trigger;
         if (!"TEST".equals(tableName)) {
+            initException = true;
             throw new AssertionError("supposed to be TEST");
         }
         if ((trigger.endsWith("AFTER") && before) ||
                 (trigger.endsWith("BEFORE") && !before)) {
+            initException = true;
             throw new AssertionError("triggerName: " + trigger + " before:" + before);
         }
         if ((trigger.startsWith("UPD") && type != UPDATE) ||
                 (trigger.startsWith("INS") && type != INSERT) ||
                 (trigger.startsWith("DEL") && type != DELETE)) {
+            initException = true;
             throw new AssertionError("triggerName: " + trigger + " type:" + type);
         }
     }
