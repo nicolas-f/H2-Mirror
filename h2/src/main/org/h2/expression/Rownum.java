@@ -7,12 +7,14 @@
 package org.h2.expression;
 
 import org.h2.command.Prepared;
+import org.h2.command.dml.Select;
 import org.h2.engine.Session;
 import org.h2.message.DbException;
 import org.h2.table.ColumnResolver;
 import org.h2.table.TableFilter;
 import org.h2.value.Value;
 import org.h2.value.ValueInt;
+import org.h2.value.ValueLong;
 
 /**
  * Represents the ROWNUM function.
@@ -27,6 +29,12 @@ public class Rownum extends Expression {
 
     @Override
     public Value getValue(Session session) {
+        if(prepared instanceof Select) {
+            Select select = (Select) prepared;
+            if(select.getTopTableFilter() != null && select.getTopTableFilter().get() != null) {
+                return ValueLong.get(select.getTopTableFilter().get().getKey());
+            }
+        }
         return ValueInt.get(prepared.getCurrentRowNumber());
     }
 
