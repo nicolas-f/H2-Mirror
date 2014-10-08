@@ -177,6 +177,13 @@ public abstract class Prepared {
     }
 
     /**
+     * @return Command
+     */
+    public Command getCommand() {
+        return command;
+    }
+
+    /**
      * Check if this object is a query.
      *
      * @return true if it is

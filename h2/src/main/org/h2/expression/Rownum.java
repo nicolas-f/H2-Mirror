@@ -29,7 +29,7 @@ public class Rownum extends Expression {
 
     @Override
     public Value getValue(Session session) {
-        if(prepared instanceof Select) {
+        if(prepared.getCommand() == null && prepared instanceof Select) {
             Select select = (Select) prepared;
             if(select.getTopTableFilter() != null && select.getTopTableFilter().get() != null) {
                 return ValueLong.get(select.getTopTableFilter().get().getKey());
